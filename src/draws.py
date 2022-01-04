@@ -32,16 +32,17 @@ def generate_pictures(root_dir="../"):
     plt.close()
 
 
-def generate_picture_by_index(root_dir="../", index_n=42, ext_col_lookup=None, ext_col_boundaries=None):
+def generate_picture_by_index(root_dir="../", index_n=42, ext_col_lookup=None, ext_col_boundaries=None, ext_posture_var=None):
     map_info, _ = load_graph_files(env_path=root_dir, map_lookup="L")
     prob_prefix = "data/prob/"
 
     node_name = map_info.get_name_by_index(index_n)
     node_row, node_col = get_node_pos_from_name_abs(node_name)
 
-    col_lookup = ['grey', 'red', 'yellow', 'green', 'cyan'] if ext_col_lookup is None else ext_col_lookup
-    col_boundaries = [0, 1e-16, 0.1, 0.5, 0.99, 1.1] if ext_col_boundaries is None else ext_col_boundaries
+    col_lookup = ['grey', 'red', 'orange', 'yellow', 'lime', 'cyan', 'magenta'] if ext_col_lookup is None else ext_col_lookup
+    col_boundaries = [0, 1e-16, 0.01, 0.25, 0.50, 0.75, 1.0, 1.01] if ext_col_boundaries is None else ext_col_boundaries
     col_norm = colors.BoundaryNorm(boundaries=col_boundaries, ncolors=len(col_lookup))
+    posture_var = [2.5, 1.5, 2.5, 1.5] if ext_posture_var is None else ext_posture_var
 
     files = find_prob_file_by_node(root_dir + prob_prefix, node_row, node_col)
     for i, f in enumerate(files):
@@ -53,7 +54,9 @@ def generate_picture_by_index(root_dir="../", index_n=42, ext_col_lookup=None, e
         for line in lines:
             _, _, n_row, n_col, f_prob = prob_line_parser(line)
             n_idx = map_info.get_index_by_name(get_node_name_from_pos_abs((n_row, n_col)))
-            col_idx[n_idx - 1] = col_norm(f_prob)
+            norm_prob = min(1.0 - 1e-16, f_prob * posture_var[i])
+            col_idx[n_idx - 1] = col_norm(norm_prob)
+        col_idx[index_n - 1] = col_norm(1.0 + 1e-16)
         col_map = [col_lookup[col_idx[i]] for i in range(len(col_idx))]
         nx.draw_networkx(map_info.g_acs, map_info.n_info, node_color=col_map, node_size=100, font_size=5, edge_color="grey", arrows=False)
         plt.savefig(f"{i}.png", dpi=200, transparent=True)
